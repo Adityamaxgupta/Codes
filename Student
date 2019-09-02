@@ -1,0 +1,764 @@
+Student.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STD.Entities
+{
+    public class Student
+    {
+        public int id { get; set; }
+        public string name { get; set; }
+        public string city { get; set; }
+        public long contactno { get; set; }
+        public string emailid { get; set; }
+
+    }
+}
+
+=====================================================================================================================
+
+StudentException.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STD.Exception
+{
+    public class StudentException:ApplicationException
+    {
+        public StudentException() : base()
+        { }
+
+        public StudentException(string message) : base(message)
+        { }
+    }
+}
+
+=======================================================================================================================
+
+StudentDAL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using STD.Entities;
+using STD.Exception;
+
+namespace STD.DAL
+{
+    public class StudentDAL
+    {
+         static List<Student> studentList = new List<Student>();
+
+        public static bool AddStudent(Student std)
+        {
+            bool stdAdded = false;
+
+            try
+            {
+                studentList.Add(std);
+                stdAdded = true;
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdAdded;
+        }
+        public static bool UpdateStudent(Student update)
+        {
+            bool stdUpdated = false;
+
+            try
+            {
+                for(int i = 0; i < studentList.Count; i++)
+                {
+                    if (studentList[i].id == update.id)
+                    {
+                         update.name= studentList[i].name;
+                         update.city= studentList[i].city;
+                          update.contactno= studentList[i].contactno;
+                          update.emailid= studentList[i].emailid;
+
+                        stdUpdated = true;
+
+                    }
+                }
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdUpdated;
+
+        }
+        public static bool DeleteStudent(int id)
+        {
+            bool stdDeleted = false;
+
+            try
+            {
+                Student std = studentList.Find(e => e.id == id);
+
+                if (std != null)
+                {
+                    studentList.Remove(std);
+                    stdDeleted = true;
+                }
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdDeleted;
+        }
+        public static Student SearchStudent(int id)
+        {
+            Student std = null;
+
+            try
+            {
+                std = studentList.Find(e => e.id == id);
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return std;
+        }
+        public static List<Student> RetrieveStudents()
+        {
+            return studentList;
+        }
+        public static bool SerializeEmployee()
+        {
+            bool studentSerialized = false;
+
+            try
+            {
+                FileStream fs = new FileStream("Std.txt", FileMode.Create, FileAccess.Write);
+                BinaryFormatter bin = new BinaryFormatter();
+                bin.Serialize(fs, studentList);
+                fs.Close();
+                studentSerialized = true;
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return studentSerialized;
+        }
+        public static List<Student> DeserializeStudent()
+        {
+            List<Student> desStudentList = null;
+
+            try
+            {
+                FileStream fs = new FileStream("Std.txt", FileMode.Open, FileAccess.Read);
+                BinaryFormatter bin = new BinaryFormatter();
+                desStudentList = bin.Deserialize(fs) as List<Student>;
+                fs.Close();
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return desStudentList;
+        }
+    }
+}
+
+============================================================================================================
+
+StudentBL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+using STD.Entities;
+using STD.Exception;
+using STD.DAL;
+
+namespace STD.BL
+{
+    public class StudentBL
+    {
+        public static bool ValidateStudent(Student std)
+        {
+            bool studentValidated = true;
+            StringBuilder message = new StringBuilder();
+
+            try
+            {
+                if (std.id < 100 || std.id > 999)
+                {
+                    studentValidated = false;
+                    message.Append("Student ID should be 3 digits long\n");
+                }
+
+                if (string.IsNullOrEmpty(std.name))
+                {
+                    studentValidated = false;
+                    message.Append("Student Name should be provided\n");
+                }
+                else if (!Regex.IsMatch(std.name, "[A-Z][a-z]+"))
+                {
+                    studentValidated = false;
+                    message.Append("Student Name should start with capital alphabet and it should have alphabets only\n");
+                }
+                if (string.IsNullOrEmpty(std.city))
+                {
+                    studentValidated = false;
+                    message.Append("City Name must be provided\n");
+                }
+                else if (!Regex.IsMatch(std.city, "[A-Z][a-z]+"))
+                {
+                    studentValidated = false;
+                    message.Append("City Name should start with capital alphabet and should have alphabet only\n");
+                }
+                if (std.contactno < 6999999999 || std.contactno > 9999999999)
+                {
+                    studentValidated = false;
+                    message.Append("Conatct no must be of 10 digit and starts with 7,8,9");
+                }
+                if (string.IsNullOrEmpty(std.emailid))
+                {
+                    studentValidated = false;
+                    message.Append("Email ID shoul not be empty");
+                }
+                else if (!Regex.IsMatch(std.emailid, @"^[a-z0-9][-a-z0-9._]+@([-a-z0-9]+.)+[a-z]{2,5}$"))
+                {
+                    studentValidated = false;
+                    message.Append("invalid email id");
+                }
+
+                if (studentValidated == false)
+                {
+                    throw new StudentException(message.ToString());
+                }
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return studentValidated;
+        }
+        public static bool AddStudent(Student std)
+        {
+            bool stdAdded = true;
+
+            try
+            {
+                if (ValidateStudent(std))
+                {
+                    stdAdded = StudentDAL.AddStudent(std);
+                }
+                else
+                    throw new StudentException("Please provide valida employee details");
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdAdded;
+        }
+        public static bool UpdateStudent(Student std)
+        {
+            bool stdUpdated = false;
+
+            try
+            {
+                if (ValidateStudent(std))
+                {
+                    stdUpdated = StudentDAL.UpdateStudent(std);
+                }
+                else
+                    throw new StudentException("Please provide valid employee details for update");
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdUpdated;
+        }
+        public static bool DeleteStudent(int id)
+        {
+            bool stdDeleted = false;
+
+            try
+            {
+                stdDeleted = StudentDAL.DeleteStudent(id);
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdDeleted;
+        }
+        public static Student SearchStudent(int id)
+        {
+            Student std = null;
+
+            try
+            {
+                std = StudentDAL.SearchStudent(id);
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return std;
+        }
+        public static List<Student> RetrieveStudents()
+        {
+            List<Student> studentList = null;
+
+            try
+            {
+                studentList = StudentDAL.RetrieveStudents();
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return studentList;
+        }
+        public static bool SerializeStudent()
+        {
+            bool stdSerialized = false;
+
+            try
+            {
+                stdSerialized =StudentDAL.SerializeEmployee();
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return stdSerialized;
+        }
+        public static List<Student> DeserializeStudent()
+        {
+            List<Student> studentList = null;
+
+            try
+            {
+                studentList = StudentDAL.DeserializeStudent();
+            }
+            catch (StudentException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return studentList;
+        }
+    }
+}
+
+========================================================================================================
+
+Program.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using STD.Entities;
+using STD.Exception;
+using STD.BL;
+
+namespace STD.PL
+{
+    class Program
+    {
+        public static void AddStudent()
+        {
+            Student std = new Student();
+            try
+            {
+                Console.Write("Enter Student Id: ");
+                std.id = int.Parse(Console.ReadLine());
+                Console.Write("Enter Student Name: ");
+                std.name = Console.ReadLine();
+                Console.Write("Enter City Name: ");
+                std.city = Console.ReadLine();
+                Console.Write("Enter Contact No: ");
+                std.contactno = long.Parse(Console.ReadLine());
+                Console.Write("Enter Email Id: ");
+                std.emailid = Console.ReadLine();
+
+                bool stdAdded = StudentBL.AddStudent(std);
+
+                if (stdAdded)
+                {
+                    Console.WriteLine("Student Added Successfully");
+                }
+                else
+                    throw new StudentException("Student Details not Added");
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+           
+        }
+       
+        public static void UpdateStudent()
+        {
+            Student std = new Student();
+            
+
+            try
+            {
+                Console.WriteLine("Enter choice of field to be updated");
+                
+                
+              
+                
+                    
+                        Console.Write("Enter Student Name to be updated: ");
+                        std.name = Console.ReadLine();
+                        
+                    
+                        Console.Write("Enter City Name to be updated: ");
+                        std.city = Console.ReadLine();
+                       
+                    
+                        Console.Write("Enter Contact No to be updated: ");
+                        std.contactno = long.Parse(Console.ReadLine());
+                        
+                    
+                        Console.Write("Enter Email Id to be updated: ");
+                        std.emailid = Console.ReadLine();
+                        
+                    
+                       
+               
+               // Console.WriteLine("Enter your choice");
+               
+                
+               
+               
+                 
+                        
+                
+                
+                bool stdUpdated = StudentBL.UpdateStudent(std);
+
+                if (stdUpdated)
+                {
+                    Console.WriteLine("Student Updated Successfully");
+                }
+                else
+                    throw new StudentException("Student Details not Updated");
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+
+        }
+        public static void SearchStudent()
+        {
+            int id;
+            Student std = null;
+
+            try
+            {
+                Console.Write("Enter Student ID to be Searched : ");
+                id = Convert.ToInt32(Console.ReadLine());
+
+                std = StudentBL.SearchStudent(id);
+
+                if (std != null)
+                {
+                    Console.WriteLine("Student ID : " + std.id);
+                    Console.WriteLine("Student Name : " + std.name);
+                    Console.WriteLine("City Name : " + std.city);
+                    Console.WriteLine("Contact No : " + std.contactno);
+                    Console.WriteLine("Email id : " + std.emailid);
+                }
+                else
+                    throw new StudentException("Employee not found");
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        public static void DeleteStudent()
+        {
+            int id;
+
+            try
+            {
+                Console.Write("Enter Student ID to be Deleted : ");
+                id = Convert.ToInt32(Console.ReadLine());
+
+                bool stddeleted = StudentBL.DeleteStudent(id);
+
+                if (stddeleted)
+                {
+                    Console.WriteLine("Student Deleted Successfully");
+                }
+                else
+                    throw new StudentException("Employee not deleted");
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        public static void RetrieveStudents()
+        {
+            try
+            {
+                List<Student> studentList = StudentBL.RetrieveStudents();
+
+                if (studentList.Count > 0)
+                {
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    Console.WriteLine("Student ID        Student Name          City Name    Contact no       Email Id");
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    foreach (Student std in studentList)
+                    {
+                        Console.WriteLine($"{std.id} \t {std.name} \t {std.city} \t {std.contactno} \t {std.emailid}");
+                    }
+                    Console.WriteLine("---------------------------------------------------------------------");
+                }
+                else
+                {
+                    throw new StudentException("Student Details not Available");
+                }
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void SerializeStudent()
+        {
+            try
+            {
+                bool stdSerialized = StudentBL.SerializeStudent();
+
+                if (stdSerialized)
+                {
+                    Console.WriteLine("Student details serialized successfully");
+                }
+                else
+                {
+                    throw new StudentException("Student Details not Serialized");
+                }
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void DeserializeStudent()
+        {
+            try
+            {
+                List<Student> studentList = StudentBL.DeserializeStudent();
+
+                if (studentList.Count > 0)
+                {
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    Console.WriteLine("Student ID        Student Name          City      Contact No        Email Id");
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    foreach (Student std in studentList)
+                    {
+                        Console.WriteLine($"{std.id} \t {std.name} \t {std.city} \t {std.contactno} \t {std.emailid}");
+                    }
+                    Console.WriteLine("---------------------------------------------------------------------");
+                }
+                else
+                {
+                    throw new StudentException("Student Details not Deserialized");
+                }
+            }
+            catch (StudentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        public static void PrintMenu()
+        {
+            Console.WriteLine("**************************");
+            Console.WriteLine("1. Add   Students");
+            Console.WriteLine("2. Update Students");
+            Console.WriteLine("3. Delete Students");
+            Console.WriteLine("4. Search Students");
+            Console.WriteLine("5. Retrieve Students");
+            Console.WriteLine("6. Serialize Students");
+            Console.WriteLine("7. Deserialize Students");
+            Console.WriteLine("8. Exit");
+            Console.WriteLine("**************************");
+        }
+
+
+        static void Main(string[] args)
+        {
+            int choice;
+            try
+            {
+                do
+                {
+                    PrintMenu();
+                    Console.Write("Enter your choice : ");
+                    choice = Convert.ToInt32(Console.ReadLine());
+                    switch (choice)
+                    {
+                        case 1:
+                            AddStudent();
+                            break;
+                        case 2:
+                            UpdateStudent();
+                            break;
+                        case 3:
+                            DeleteStudent();
+                            break;
+                        case 4:
+                            SearchStudent();
+                            break;
+                        case 5:
+                            RetrieveStudents();
+                            break;
+                        case 6:
+                            SerializeStudent();
+                            break;
+                        case 7:
+                            DeserializeStudent();
+                            break;
+                        case 8:
+                            Environment.Exit(0);
+                            break;
+                        default:
+                            Console.WriteLine("Please make valid choice");
+                            break;
+                    }
+                } while (choice != 8);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+}
