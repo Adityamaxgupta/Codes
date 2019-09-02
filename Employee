@@ -1,0 +1,690 @@
+Entity Layer
+Employee.cs
+using System;
+
+namespace EMS.Entity
+{
+    [Serializable]
+    public class Employee
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public DateTime DOJ { get; set; }
+        public double Salary { get; set; }
+    }
+}
+***********************************
+DAL Layer
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using EMS.Entity;
+using EMS.Exception;
+
+namespace EMS.DAL
+{
+    public class EmployeeOperations
+    {
+        static List<Employee> empList = new List<Employee>();
+
+        public static bool AddEmployee(Employee emp)
+        {
+            bool empAdded = false;
+
+            try
+            {
+                empList.Add(emp);
+                empAdded = true;
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empAdded;
+        }
+
+        public static bool UpdateEmployee(Employee emp)
+        {
+            bool empUpdated = false;
+
+            try
+            {
+                for (int i = 0; i < empList.Count; i++)
+                {
+                    if (empList[i].ID == emp.ID)
+                    {
+                        empList[i].Name = emp.Name;
+                        empList[i].DOJ = emp.DOJ;
+                        empList[i].Salary = emp.Salary;
+                        empUpdated = true;
+                    }
+                }
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empUpdated;
+        }
+
+        public static bool DeleteEmployee(int id)
+        {
+            bool empDeleted = false;
+
+            try
+            {
+                Employee emp = empList.Find(e => e.ID == id);
+
+                if (emp != null)
+                {
+                    empList.Remove(emp);
+                    empDeleted = true;
+                }
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empDeleted;
+        }
+
+        public static Employee SearchEmployee(int id)
+        {
+            Employee emp = null;
+
+            try
+            {
+                emp = empList.Find(e => e.ID == id);
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch(SystemException ex)
+            {
+                throw ex;
+            }
+
+            return emp;
+        }
+
+        public static List<Employee> RetrieveEmployees()
+        {
+            return empList;
+        }
+
+        public static bool SerializeEmployee()
+        {
+            bool empSerialized = false;
+
+            try
+            {
+                FileStream fs = new FileStream("Emp.txt", FileMode.Create, FileAccess.Write);
+                BinaryFormatter bin = new BinaryFormatter();
+                bin.Serialize(fs, empList);
+                fs.Close();
+                empSerialized = true;
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empSerialized;
+        }
+
+        public static List<Employee> DeserializeEmployee()
+        {
+            List<Employee> desEmpList = null;
+
+            try
+            {
+                FileStream fs = new FileStream("Emp.txt", FileMode.Open, FileAccess.Read);
+                BinaryFormatter bin = new BinaryFormatter();
+                desEmpList = bin.Deserialize(fs) as List<Employee>;
+                fs.Close();
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return desEmpList;
+        }
+    }
+}
+
+
+************************************
+BL Layer
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using EMS.Entity;
+using EMS.Exception;
+using EMS.DAL;
+
+namespace EMS.BL
+{
+    public class EmployeeValidation
+    {
+        public static bool ValidateEmployee(Employee emp)
+        {
+            bool empValidated = true;
+            StringBuilder message = new StringBuilder();
+
+            try
+            {
+                if (emp.ID < 100000 || emp.ID > 999999)
+                {
+                    empValidated = false;
+                    message.Append("Employee ID should be 6 digits long\n");
+                }
+
+                if (string.IsNullOrEmpty(emp.Name))
+                {
+                    empValidated = false;
+                    message.Append("Employee Name should be provided\n");
+                }
+                else if (!Regex.IsMatch(emp.Name, "[A-Z][a-z]+"))
+                {
+                    empValidated = false;
+                    message.Append("Employee Name should start with capital alphabet and it should have alphabets only\n");
+                }
+
+                if (emp.DOJ > DateTime.Now)
+                {
+                    empValidated = false;
+                    message.Append("Date of Joining should be less than or equal to current date");
+                }
+
+                if (empValidated == false)
+                {
+                    throw new EmployeeException(message.ToString());
+                }
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empValidated;
+        }
+        public static bool AddEmployee(Employee emp)
+        {
+            bool empAdded = true;
+
+            try
+            {
+                if (ValidateEmployee(emp))
+                {
+                    empAdded = EmployeeOperations.AddEmployee(emp);
+                }
+                else
+                    throw new EmployeeException("Please provide valida employee details");
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empAdded;
+        }
+        public static bool UpdateEmployee(Employee emp)
+        {
+            bool empUpdated = false;
+
+            try
+            {
+                if (ValidateEmployee(emp))
+                {
+                    empUpdated = EmployeeOperations.UpdateEmployee(emp);
+                }
+                else
+                    throw new EmployeeException("Please provide valid employee details for update");
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empUpdated;
+        }
+        public static bool DeleteEmployee(int id)
+        {
+            bool empDeleted = false;
+
+            try
+            {
+                empDeleted = EmployeeOperations.DeleteEmployee(id);
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empDeleted;
+        }
+        public static Employee SearchEmployee(int id)
+        {
+            Employee emp = null;
+
+            try
+            {
+                emp = EmployeeOperations.SearchEmployee(id);
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return emp;
+        }
+        public static List<Employee> RetrieveEmployees()
+        {
+            List<Employee> empList = null;
+
+            try
+            {
+                empList = EmployeeOperations.RetrieveEmployees();
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empList;
+        }
+        public static bool SerializeEmployee()
+        {
+            bool empSerialized = false;
+
+            try
+            {
+                empSerialized = EmployeeOperations.SerializeEmployee();
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+
+            return empSerialized;
+        }
+        public static List<Employee> DeserializeEmployee()
+        {
+            List<Employee> empList = null;
+
+            try
+            {
+                empList = EmployeeOperations.DeserializeEmployee();
+            }
+            catch (EmployeeException ex)
+            {
+                throw ex;
+            }
+            catch (SystemException ex)
+            {
+                throw ex;
+            }
+            return empList;
+        }
+    }
+}
+
+
+*************************************************
+Exception Layer
+using System;
+
+namespace EMS.Exception
+{
+    public class EmployeeException : ApplicationException
+    {
+        public EmployeeException() : base()
+        { }
+        public EmployeeException(string message) : base(message)
+        { }
+    }
+}
+******************************************
+Presentation Layer
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using EMS.Entity;
+using EMS.Exception;
+using EMS.BL;
+
+namespace EMP.PL
+{
+    class Program
+    {
+        public static void AddEmployee()
+        {
+            Employee emp = new Employee();
+
+            try
+            {
+                Console.Write("Enter Employee ID : ");
+                emp.ID = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Enter Employee Name : ");
+                emp.Name = Console.ReadLine();
+                Console.Write("Enter Date of Joining : ");
+                emp.DOJ = Convert.ToDateTime(Console.ReadLine());
+                Console.Write("Enter Employee Salary : ");
+                emp.Salary = Convert.ToDouble(Console.ReadLine());
+
+                bool empAdded = EmployeeValidation.AddEmployee(emp);
+
+                if (empAdded)
+                {
+                    Console.WriteLine("Employee Added Successfully");
+                }
+                else
+                    throw new EmployeeException("Employee Details not Added");
+
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void UpdateEmployee()
+        {
+            Employee emp = new Employee();
+
+            try
+            {
+                Console.Write("Enter Employee ID to be Updated : ");
+                emp.ID = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Enter Employee Name to be Updated : ");
+                emp.Name = Console.ReadLine();
+                Console.Write("Enter Date of Joining to be Updated: ");
+                emp.DOJ = Convert.ToDateTime(Console.ReadLine());
+                Console.Write("Enter Employee Salary to be Updated: ");
+                emp.Salary = Convert.ToDouble(Console.ReadLine());
+
+                bool empUpdated = EmployeeValidation.UpdateEmployee(emp);
+
+                if (empUpdated)
+                {
+                    Console.WriteLine("Employee Updated Successfully");
+                }
+                else
+                    throw new EmployeeException("Employee Details not Updated");
+
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void DeleteEmployee()
+        {
+            int id;
+
+            try 
+            {
+                Console.Write("Enter Employee ID to be Deleted : ");
+                id = Convert.ToInt32(Console.ReadLine());
+
+                bool empdeleted = EmployeeValidation.DeleteEmployee(id);
+
+                if (empdeleted)
+                {
+                    Console.WriteLine("Employee Deleted Successfully");
+                }
+                else
+                    throw new EmployeeException("Employee not deleted");
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void SearchEmployee()
+        {
+            int id;
+            Employee emp = null;
+
+            try
+            {
+                Console.Write("Enter Employee ID to be Searched : ");
+                id = Convert.ToInt32(Console.ReadLine());
+
+                emp = EmployeeValidation.SearchEmployee(id);
+
+                if (emp != null)
+                {
+                    Console.WriteLine("Employee ID : " + emp.ID);
+                    Console.WriteLine("Employee Name : " + emp.Name);
+                    Console.WriteLine("Date of Joining : " + emp.DOJ);
+                    Console.WriteLine("Employee Salary : " + emp.Salary);
+                }
+                else
+                    throw new EmployeeException("Employee not found");
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void RetrieveEmployees()
+        {
+            try
+            {
+                List<Employee> empList = EmployeeValidation.RetrieveEmployees();
+
+                if (empList.Count > 0)
+                {
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    Console.WriteLine("Employee ID        Employee Name          Date of Joining    Salary");
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    foreach (Employee emp in empList)
+                    {
+                        Console.WriteLine($"{emp.ID} \t {emp.Name} \t {emp.DOJ} \t {emp.Salary}");
+                    }
+                    Console.WriteLine("---------------------------------------------------------------------");
+                }
+                else
+                {
+                    throw new EmployeeException("Employee Details not Available");
+                }
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void SerializeEmployee()
+        {
+            try
+            {
+                bool empSerialized = EmployeeValidation.SerializeEmployee();
+
+                if (empSerialized)
+                {
+                    Console.WriteLine("Employee details serialized successfully");
+                }
+                else
+                {
+                    throw new EmployeeException("Employee Details not Serialized");
+                }
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void DeserializeEmployees()
+        {
+            try
+            {
+                List<Employee> empList = EmployeeValidation.DeserializeEmployee();
+
+                if (empList.Count > 0)
+                {
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    Console.WriteLine("Employee ID        Employee Name          Date of Joining    Salary");
+                    Console.WriteLine("---------------------------------------------------------------------");
+                    foreach (Employee emp in empList)
+                    {
+                        Console.WriteLine($"{emp.ID} \t {emp.Name} \t {emp.DOJ} \t {emp.Salary}");
+                    }
+                    Console.WriteLine("---------------------------------------------------------------------");
+                }
+                else
+                {
+                    throw new EmployeeException("Employee Details not Deserialized");
+                }
+            }
+            catch (EmployeeException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void PrintMenu()
+        {
+            Console.WriteLine("**************************");
+            Console.WriteLine("1. Add Employee");
+            Console.WriteLine("2. Update Employee");
+            Console.WriteLine("3. Delete Employee");
+            Console.WriteLine("4. Search Employee");
+            Console.WriteLine("5. Retrieve Employee");
+            Console.WriteLine("6. Serialize Employee");
+            Console.WriteLine("7. Deserialize Employee");
+            Console.WriteLine("8. Exit");
+            Console.WriteLine("**************************");
+        }
+
+        static void Main(string[] args)
+        {
+            int choice;
+
+            try
+            {
+                do
+                {
+                    PrintMenu();
+                    Console.Write("Enter your choice : ");
+                    choice = Convert.ToInt32(Console.ReadLine());
+                    switch (choice)
+                    {
+                        case 1: AddEmployee();
+                            break;
+                        case 2: UpdateEmployee();
+                            break;
+                        case 3: DeleteEmployee();
+                            break;
+                        case 4: SearchEmployee();
+                            break;
+                        case 5: RetrieveEmployees();
+                            break;
+                        case 6: SerializeEmployee();
+                            break;
+                        case 7: DeserializeEmployees();
+                            break;
+                        case 8: Environment.Exit(0);
+                            break;
+                        default: Console.WriteLine("Please make valid choice");
+                            break;
+                    }
+                } while (choice != 8);
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+}
